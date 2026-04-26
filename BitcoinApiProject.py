@@ -3,9 +3,11 @@ import requests
 
 app = Flask(__name__)
 
-@app.route("/prices")
+@app.route("/")
 def home():
     return render_template("index.html")
+
+@app.route("/prices")
 def prices():
     coins = request.args.get("coins", "bitcoin")
     days = request.args.get("days", "30")
