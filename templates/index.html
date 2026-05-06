@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 Crypto & Stock Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.1.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px 0;
+            border-bottom: 2px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #4caf50;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+        }
+
+        .header p {
+            color: #888;
+            font-size: 0.95em;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .stat-box {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            background: rgba(76, 175, 80, 0.2);
+            border-color: rgba(76, 175, 80, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: rgba(44, 44, 62, 0.8);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(76, 175, 80, 0.4);
+            box-shadow: 0 12px 40px rgba(76, 175, 80, 0.1);
+        }
+
+        .section h2 {
+            color: #4caf50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        input, select {
+            padding: 12px 15px;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            border-radius: 8px;
+            background: rgba(30, 30, 47, 0.8);
+            color: #e0e0e0;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4caf50;
+            background: rgba(30, 30, 47, 1);
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+        }
+
+        input::placeholder {
+            color: #555;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #45a049, #3d8b40);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #4caf50;
+            font-size: 1.1em;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(76, 175, 80, 0.3);
+            border-top-color: #4caf50;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(30, 30, 47, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(76, 175, 80, 0.2);
+        }
+
+        .info-box {
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid #4caf50;
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #ccc;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.2);
+        }
+
+        th {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: rgba(76, 175, 80, 0.05);
+        }
+
+        .error-message {
+            background: rgba(255, 87, 34, 0.1);
+            border-left: 4px solid #ff5722;
+            padding: 12px 15px;
+            border-radius: 5px;
+            color: #ff9999;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid #4caf50;
+            padding: 12px 15px;
+            border-radius: 5px;
+            color: #90ee90;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: rgba(76, 175, 80, 0.1);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            color: #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .tab-button.active {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4caf50;
+            color: #4caf50;
+        }
+
+        .tab-button:hover {
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+
+            .section {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>💰 Crypto & Stock Dashboard</h1>
+    <p>Real-time prices with advanced charting & caching</p>
+</div>
+
+<div class="stats-container">
+    <div class="stat-box">
+        <div class="stat-label">📊 Total Requests</div>
+        <div class="stat-value" id="totalRequests">0</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-label">✅ Cache Hits</div>
+        <div class="stat-value" id="cacheHits">0</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-label">📈 Cache Rate</div>
+        <div class="stat-value" id="cacheRate">0%</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-label">⚡ Avg Response</div>
+        <div class="stat-value" id="avgResponse">0ms</div>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- CRYPTO SECTION -->
+    <div class="section">
+        <h2>🪙 Cryptocurrency Prices</h2>
+        
+        <div class="controls">
+            <input id="coins" type="text" value="bitcoin,ethereum" placeholder="e.g., bitcoin,ethereum,cardano">
+            <input id="days" type="number" value="30" min="1" max="365" placeholder="Days">
+            <select id="currency">
+                <option value="usd">USD ($)</option>
+                <option value="eur">EUR (€)</option>
+                <option value="uah">UAH (₴)</option>
+                <option value="gbp">GBP (£)</option>
+                <option value="jpy">JPY (¥)</option>
+            </select>
+            <div class="button-group">
+                <button onclick="loadCryptoPrices()">📈 Load Crypto</button>
+                <button onclick="downloadCryptoData()">⬇️ Export CSV</button>
+            </div>
+        </div>
+
+        <div class="loading" id="cryptoLoading">
+            <div class="spinner"></div>
+            Loading cryptocurrency data...
+        </div>
+
+        <div id="cryptoError" class="error-message"></div>
+        <div id="cryptoSuccess" class="success-message"></div>
+
+        <div class="chart-container" id="cryptoChartContainer">
+            <canvas id="cryptoChart"></canvas>
+        </div>
+
+        <div class="info-box">
+            💡 <strong>Tip:</strong> Scroll to zoom, drag to pan. Multiple coins are displayed with different colors.
+        </div>
+
+        <table id="cryptoTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th>📅 Date</th>
+                    <th>🪙 Coin</th>
+                    <th>💵 Price</th>
+                    <th>📊 24h Change</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- STOCKS SECTION -->
+    <div class="section">
+        <h2>📈 Stock Market Data</h2>
+        
+        <div class="controls">
+            <input id="symbol" type="text" value="AAPL" placeholder="e.g., AAPL, GOOGL, MSFT">
+            <select id="stockInterval">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+            </select>
+            <div class="button-group">
+                <button onclick="loadStockData()">📊 Load Stock</button>
+                <button onclick="downloadStockData()">⬇️ Export CSV</button>
+            </div>
+        </div>
+
+        <div class="loading" id="stockLoading">
+            <div class="spinner"></div>
+            Loading stock data...
+        </div>
+
+        <div id="stockError" class="error-message"></div>
+        <div id="stockSuccess" class="success-message"></div>
+
+        <div class="chart-container" id="stockChartContainer">
+            <canvas id="stockChart"></canvas>
+        </div>
+
+        <div class="info-box">
+            💡 <strong>Tip:</strong> Shows Open, High, Low, Close (OHLC) prices. Scroll to zoom, drag to pan.
+        </div>
+
+        <table id="stockTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th>📅 Date</th>
+                    <th>💵 Open</th>
+                    <th>📈 High</th>
+                    <th>📉 Low</th>
+                    <th>💰 Close</th>
+                    <th>📊 Volume</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- COMBINED SECTION -->
+    <div class="section">
+        <h2>⚔️ Crypto vs Stock Comparison</h2>
+        
+        <div class="controls">
+            <input id="comboCrypto" type="text" value="bitcoin" placeholder="Cryptocurrency">
+            <input id="comboStock" type="text" value="AAPL" placeholder="Stock symbol">
+            <select id="comboCurrency">
+                <option value="usd">USD ($)</option>
+                <option value="eur">EUR (€)</option>
+            </select>
+            <button onclick="loadCombinedData()">⚔️ Compare</button>
+        </div>
+
+        <div class="loading" id="combinedLoading">
+            <div class="spinner"></div>
+            Loading comparison data...
+        </div>
+
+        <div id="combinedError" class="error-message"></div>
+
+        <div class="chart-container" id="combinedChartContainer">
+            <canvas id="combinedChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<script src="/static/script.js"></script>
+
+</body>
+</html>
