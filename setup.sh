@@ -1,17 +1,22 @@
 #!/bin/bash
-# Development setup script
 
 echo "🚀 Setting up Cripto & Stock API Project..."
 
 # Check Python version
-python_version=$(python3 --version 2>&1 | awk '{print $2}')
-echo "✓ Python version: $python_version"
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python 3 is not installed"
+    exit 1
+fi
+
+PYTHON_VERSION=$(python3 --version)
+echo "✓ $PYTHON_VERSION"
 
 # Create virtual environment
 echo "📦 Creating virtual environment..."
 python3 -m venv venv
 
 # Activate virtual environment
+echo "🔄 Activating virtual environment..."
 source venv/bin/activate
 
 # Install requirements
@@ -30,7 +35,7 @@ mkdir -p instance
 
 # Initialize database
 echo "🗄️  Initializing database..."
-python3 -c "from BitcoinApiProject import app, db, init_db; init_db(app); print('✓ Database initialized')"
+python -c "from BitcoinApiProject import app, db, init_db; init_db(app); print('✓ Database initialized')"
 
 echo ""
 echo "✅ Setup complete!"
